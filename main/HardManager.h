@@ -40,7 +40,7 @@ class HardManager {
     void open(byte percent = 100);
     void close(byte percent = 100);
     void stop();
-    void setLedMode(LedMode mode); // @todo 
+    void setLedMode(LedMode mode);
     void loop();
     LedMode getLedMode(); // @todo 
     bool isUpRelayOn(); // @todo 
