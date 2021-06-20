@@ -19,14 +19,6 @@ void GlobalConfiguration::begin() {
     EEPROM.put<unsigned long>(DURATION_ADDRESS, DEFAULT_DURATION);
     EEPROM.commit();
   }
-
-  Serial.print(EEPROM[DURATION_ADDRESS], HEX);
-  Serial.print(" 0x");
-  Serial.print(EEPROM[DURATION_ADDRESS+1], HEX);
-  Serial.print(" 0x");
-  Serial.print(EEPROM[DURATION_ADDRESS+2], HEX);
-  Serial.print(" 0x");
-  Serial.println(EEPROM[DURATION_ADDRESS+3], HEX);
   
   this->configured = EEPROM.get<bool>(CONFIGURED_ADDRESS, this->configured);
   this->wifiSsid = (const char*)&EEPROM[WIFI_SSID_ADDRESS];
@@ -105,6 +97,13 @@ void GlobalConfiguration::setNetworkInformations(const char* ssid, const char* p
    
   this->configured = true;
   EEPROM.put<bool>(CONFIGURED_ADDRESS, this->configured);
+  EEPROM.commit();
   
-  EEPROM.commit(); 
+  log_printf(
+    "[GlobalConfiguration::setNetworkInformations]ssid: %s, password: %s, serverUrl: %s, isConfigured: %d",
+    this->wifiSsid,
+    this->wifiPassword,
+    this->serverUrl,
+    this->configured
+  );
 }

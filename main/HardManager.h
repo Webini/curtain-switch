@@ -121,8 +121,8 @@ class HardManager {
     unsigned long stopUpRelayAfter = 0;
     unsigned long duration = DEFAULT_DURATION; // opening or closing duration in milliseconds
     unsigned long setPositionSince = 0;
-    float currentPosition = 0; // current curtain position 
-    float initialPosition = 0; // initial curtain position (before up or down relay activation)
+    float currentPosition = POSITION_CLOSED; // current curtain position 
+    float initialPosition = POSITION_CLOSED; // initial curtain position (before up or down relay activation)
     LedMode ledMode = LedMode::OFF;
     unsigned long ledLastStateChangeAt = 0;
     bool ledOn = false;

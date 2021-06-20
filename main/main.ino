@@ -13,7 +13,9 @@ void setup() {
   Serial.begin(115200);
   
   conf.begin();
+  
   hardman.begin(conf.getDuration());
+  
   com.begin(conf.getMiddleCoursePosition());
 }
 

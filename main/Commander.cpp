@@ -11,13 +11,28 @@ Commander::Commander(GlobalConfiguration* globalConf, HardManager* _hardman): co
   this->hardman->onDownRelayStateChange(std::bind(&Commander::onDownRelay, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 }
 
+
 void Commander::begin(float middleCoursePosition) {
   this->middleCoursePosition = middleCoursePosition;
+
+  if (!this->conf->isConfigured()) { // start configuration mode if curtain isn't configured
+    this->onToggleMode();     
+  }
 }
+
 
 void Commander::loop() {
-
+  if (this->ap != nullptr) {
+    log_printf("[Commander::loop]Ap loop");
+    this->ap->loop();
+  }
 }
+
+
+Commander::Mode Commander::getMode() {
+  return this->mode;
+}
+
 
 void Commander::onCloseButton(bool down, unsigned long since, HardManager* hm) {
   log_printf("[Commander::onCloseButton]Down: %d, since: %u", down, since); 
@@ -58,8 +73,13 @@ void Commander::onStopButton(bool down, unsigned long since, HardManager* hm) {
     unsigned long now = millis();
     unsigned long elapsed = now - since;
 
+    if (elapsed > RESTART_DURATION) {
+      ESP.restart();
+      return;
+    }
+    
     if (elapsed > START_GLOBAL_CONFIGURATION_DURATION) {
-      // @todo global mode configuration callback
+      this->onToggleMode();
       return;
     }
     
@@ -73,6 +93,26 @@ void Commander::onStopButton(bool down, unsigned long since, HardManager* hm) {
   }
   
   this->hardman->stop();
+}
+
+
+void Commander::onToggleMode() { 
+  if (this->mode == Mode::NORMAL) {
+    log_printf("[Commander::onToggleMode]Changing mode to configuration");
+    this->mode = Mode::CONFIGURATION;
+    this->ap = new ConfigurationAP();
+    this->ap->onWifiCredentialsDefined(std::bind(&Commander::onWifiCredentialsDefined, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    this->ap->begin();
+    this->hardman->setLedMode(HardManager::LedMode::BLINK_SLOW);
+  } else if (this->mode == Mode::CONFIGURATION) {
+    log_printf("[Commander::onToggleMode]Changing mode to normal");
+    this->mode = Mode::NORMAL;
+    delete this->ap;
+    log_printf("[Commander::onToggleMode]Post delete ok");
+    this->ap = nullptr;
+    this->hardman->setLedMode(HardManager::LedMode::OFF);
+    log_printf("[Commander::onToggleMode]finished");
+  }
 }
 
 
@@ -134,5 +174,15 @@ void Commander::onDownRelay(bool on, unsigned long since, HardManager* hm) {
     this->hardman->setDuration(totalDuration);
     this->hardman->setCurrentPositionValue(POSITION_CLOSED);
     this->hardman->setLedMode(HardManager::LedMode::OFF);
+  }
+}
+
+
+void Commander::onWifiCredentialsDefined(const char* ssid, const char* password, const char* serverUrl) {
+  this->conf->setNetworkInformations(ssid, password, serverUrl);
+
+  if (this->mode == Mode::CONFIGURATION) {
+    // @todo => memleak, this will delete ConfigurationAP then ConfigurationWebServer and caused the return call to failed
+    this->onToggleMode();
   }
 }

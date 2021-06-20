@@ -1,6 +1,8 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
+#define AP_SSID_PREFIX "curtain-switch-"
+#define AP_SSID_PASSWORD "IoT-Curtain"
 
 #define DEFAULT_LED_PIN 0         // D3
 #define DEFAULT_UP_RELAY_PIN 15   // D8

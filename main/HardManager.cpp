@@ -91,8 +91,6 @@ void HardManager::updateCurrentPosition() {
 
   float newCurrentPosition = this->initialPosition + direction * ((float)elapsedTime / (float)this->duration);
 
-  log_printf("[HardManager::updateCurrentPosition] new position: %0.5f, currentPosition: %0.5f, elapsedTime: %u, direction : %f", newCurrentPosition, this->currentPosition, elapsedTime, direction);
-
   if (newCurrentPosition > 1) {
     newCurrentPosition = 1;
   } else if (newCurrentPosition < 0) {
@@ -103,6 +101,8 @@ void HardManager::updateCurrentPosition() {
     return;
   }
 
+  log_printf("[HardManager::updateCurrentPosition] new position: %0.5f, currentPosition: %0.5f, elapsedTime: %u, direction : %f", newCurrentPosition, this->currentPosition, elapsedTime, direction);
+  
   this->currentPosition = newCurrentPosition;
   
   // initializing opening
