@@ -3,62 +3,108 @@
 
 #include <Arduino.h>
 #include <functional>
+#include "parameters.h"
+#include "log.h"
 
-#define DEFAULT_LED_PIN 0         // D3
-#define DEFAULT_UP_RELAY_PIN 15   // D8
-#define DEFAULT_OPEN_BTN_PIN 5    // D1
-#define DEFAULT_STOP_BTN_PIN 3    // RX 
+#define UNKNOWN_CURRENT_POSITION -1
 
-#define DEFAULT_DOWN_RELAY_PIN 13 // D7
-#define DEFAULT_CLOSE_BTN_PIN 12  // D6
+#define DIRECTION_OPEN 1
+#define DIRECTION_CLOSE -1
 
-#define DEFAULT_DURATION 6000     // in milliseconds
+#define POSITION_OPENED 1.0
+#define POSITION_CLOSED 0.0
 
-#define BLINK_INTERVAL 600        // in milliseconds
+#define ABS(v) (v < 0 ? -(v) : v)
 
 class HardManager {
   public:
+    enum ReturnCode {
+      NOTHING_TODO = 2,
+      SUCCESS = 1,
+      INVALID_POSITION = 0,
+      INITIALIZING = -1
+    };
+    
     enum LedMode {
-      BLINK,
-      ON,
-      OFF
+      BLINK_SLOW = 8,
+      BLINK_FAST = 4,
+      BLINK = 2,
+      ON = 1,
+      OFF = 0
     };
     
     typedef std::function<void(bool, unsigned long, HardManager*)> BtnStateChangeCallbackFunction;
     typedef std::function<void(bool, unsigned long, HardManager*)> RelayStateChangeCallbackFunction;
+    typedef std::function<void(float, HardManager*)> PositionChangedCallbackFunction;
     
     HardManager(
-      unsigned int duration = DEFAULT_DURATION,
       byte ledPin = DEFAULT_LED_PIN, byte upRelayPin = DEFAULT_UP_RELAY_PIN, 
       byte openBtnPin = DEFAULT_OPEN_BTN_PIN, byte stopBtnPin = DEFAULT_STOP_BTN_PIN, 
       byte downRelayPin = DEFAULT_DOWN_RELAY_PIN, byte closeBtnPin = DEFAULT_CLOSE_BTN_PIN
     );
-    
-    void begin();
-    void setDuration(unsigned int duration);
-    unsigned int getDuration();
-    void open(byte percent = 100);
-    void close(byte percent = 100);
-    void stop();
+
+    /**
+     * Initialize hardware
+     * @param duration duration in ms
+     */
+    void begin(unsigned long duration = DEFAULT_DURATION);
+
+    /**
+     * Get current position value
+     */
+    float getCurrentPositionValue();
+    /**
+     * Set current position value, carefully use this api, you must call stop() before changing this value
+     */
+    void setCurrentPositionValue(float position);
+    /**
+     * Set opening / closing duration in millisec, carefully use this api, you must call stop() before changing this value
+     */
+    void setDuration(unsigned long duration);
+    /**
+     * Get opening / closing duration in millisec
+     */
+    unsigned long getDuration();
+    /**
+     * @param position curtain position 0 (closed) to 1 (opened)
+     */
+    ReturnCode setPosition(float position); 
+    /**
+     * Stop opening / closing
+     */
+    ReturnCode stop();
+    /**
+     * Set led mode
+     */
     void setLedMode(LedMode mode);
+    /**
+     * Hardware monitoring loop
+     */
     void loop();
-    LedMode getLedMode(); // @todo 
-    bool isUpRelayOn(); // @todo 
-    bool isDownRelayOn(); // @todo 
-    bool isCloseBtnDown(); // @todo 
-    bool isUpBtnDown(); // @todo 
-    bool isStopBtndown(); // @todo 
+    /**
+     * Get led mode
+     */
+    LedMode getLedMode();
+    bool isUpRelayOn();
+    bool isDownRelayOn();
+    bool isCloseBtnDown();
+    bool isOpenBtnDown();
+    bool isStopBtnDown();
+    bool isInitializing();
     void onOpenBtnStateChange(BtnStateChangeCallbackFunction callback);
     void onCloseBtnStateChange(BtnStateChangeCallbackFunction callback);
     void onStopBtnStateChange(BtnStateChangeCallbackFunction callback);
     void onUpRelayStateChange(RelayStateChangeCallbackFunction callback);
     void onDownRelayStateChange(RelayStateChangeCallbackFunction callback);
+    void onPositionChanged(PositionChangedCallbackFunction callback);
 
   protected:
-    void setUpRelayState(bool on);
-    void setDownRelayState(bool on);
+    bool setUpRelayState(bool on);
+    bool setDownRelayState(bool on);
     
   private:
+    bool initializing = false;
+    void updateCurrentPosition();
     void blinkLed();
     byte ledPin;
     byte upRelayPin;
@@ -73,7 +119,10 @@ class HardManager {
     unsigned long downRelayOnSince = 0;
     unsigned long stopDownRelayAfter = 0;
     unsigned long stopUpRelayAfter = 0;
-    unsigned int duration; // opening or closing duration in milliseconds
+    unsigned long duration = DEFAULT_DURATION; // opening or closing duration in milliseconds
+    unsigned long setPositionSince = 0;
+    float currentPosition = 0; // current curtain position 
+    float initialPosition = 0; // initial curtain position (before up or down relay activation)
     LedMode ledMode = LedMode::OFF;
     unsigned long ledLastStateChangeAt = 0;
     bool ledOn = false;
@@ -82,6 +131,7 @@ class HardManager {
     BtnStateChangeCallbackFunction openBtnStateChangeCallback = nullptr;
     RelayStateChangeCallbackFunction upRelayStateChangeCallback = nullptr;
     RelayStateChangeCallbackFunction downRelayStateChangeCallback = nullptr;
+    PositionChangedCallbackFunction positionChangedCallback = nullptr;
 };
 
 #endif
