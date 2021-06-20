@@ -2,12 +2,13 @@
 #define CONFIGURATION_WEB_SERVER_H
 
 #include <ESP8266WebServer.h>
+#include <functional>
 #include "log.h"
 
 class ConfigurationWebServer {
   public:
     typedef std::function<void(const char*, const char*, const char*)> WifiCredentialsDefinedCallbackFunction;
-    ConfigurationWebServer(IPAddress addr);
+    ConfigurationWebServer(IPAddress addr, int port = 80);
     void onHomePage();
     void onConfigurationSent();
     void onNotFound();

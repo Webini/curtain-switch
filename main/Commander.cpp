@@ -16,21 +16,73 @@ void Commander::begin(float middleCoursePosition) {
   this->middleCoursePosition = middleCoursePosition;
 
   if (!this->conf->isConfigured()) { // start configuration mode if curtain isn't configured
-    this->onToggleMode();     
+    this->setMode(Mode::CONFIGURATION);     
   }
 }
 
 
 void Commander::loop() {
-  if (this->ap != nullptr) {
-    log_printf("[Commander::loop]Ap loop");
-    this->ap->loop();
+  if (this->mode != this->previousMode) {
+    this->changeMode();
   }
+  
+  if (this->configurationAp != nullptr) {
+    this->configurationAp->loop();
+  }
+
+  if (this->normalAp != nullptr) {
+    this->normalAp->loop();
+  }
+}
+
+void Commander::changeMode() {
+  if (this->configurationAp) {
+    delete this->configurationAp;
+    this->configurationAp = nullptr;
+  }
+
+  if (this->normalAp) {
+    delete this->normalAp;
+    this->normalAp = nullptr;
+  }
+  
+  if (this->mode == Mode::NORMAL) {
+    log_printf("[Commander::loop]Changing mode to normal");
+    this->hardman->setLedMode(HardManager::LedMode::BLINK_FAST); // indicating that we are trying a connection to the AP
+    this->normalAp = new NormalAP(this->hardman);
+    this->normalAp->onWifiConnectionFailed(std::bind(&Commander::onWifiConnectionFailed, this, std::placeholders::_1));
+    this->normalAp->onWifiConnectionSuccess(std::bind(&Commander::onWifiConnectionSuccess, this, std::placeholders::_1));
+    this->normalAp->begin(
+      this->conf->getWifiSsid(),
+      this->conf->getWifiPassword(),
+      this->conf->getServerUrl()
+    );
+  } 
+  
+  if (this->mode == Mode::CONFIGURATION) {
+    log_printf("[Commander::Loop]Changing mode to configuration");
+    this->configurationAp = new ConfigurationAP();
+    this->configurationAp->onWifiCredentialsDefined(std::bind(&Commander::onWifiCredentialsDefined, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    this->configurationAp->begin();
+    this->hardman->setLedMode(HardManager::LedMode::BLINK_SLOW);
+  }
+  
+  this->previousMode = this->mode;
 }
 
 
 Commander::Mode Commander::getMode() {
   return this->mode;
+}
+
+
+void Commander::onWifiConnectionSuccess(int status) {
+  this->hardman->setLedMode(HardManager::LedMode::OFF);
+}
+
+
+void Commander::onWifiConnectionFailed(int status) {
+  this->setMode(Mode::CONFIGURATION);
 }
 
 
@@ -79,7 +131,7 @@ void Commander::onStopButton(bool down, unsigned long since, HardManager* hm) {
     }
     
     if (elapsed > START_GLOBAL_CONFIGURATION_DURATION) {
-      this->onToggleMode();
+      this->setMode(this->mode == Mode::CONFIGURATION ? Mode::NORMAL : Mode::CONFIGURATION);
       return;
     }
     
@@ -96,23 +148,8 @@ void Commander::onStopButton(bool down, unsigned long since, HardManager* hm) {
 }
 
 
-void Commander::onToggleMode() { 
-  if (this->mode == Mode::NORMAL) {
-    log_printf("[Commander::onToggleMode]Changing mode to configuration");
-    this->mode = Mode::CONFIGURATION;
-    this->ap = new ConfigurationAP();
-    this->ap->onWifiCredentialsDefined(std::bind(&Commander::onWifiCredentialsDefined, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    this->ap->begin();
-    this->hardman->setLedMode(HardManager::LedMode::BLINK_SLOW);
-  } else if (this->mode == Mode::CONFIGURATION) {
-    log_printf("[Commander::onToggleMode]Changing mode to normal");
-    this->mode = Mode::NORMAL;
-    delete this->ap;
-    log_printf("[Commander::onToggleMode]Post delete ok");
-    this->ap = nullptr;
-    this->hardman->setLedMode(HardManager::LedMode::OFF);
-    log_printf("[Commander::onToggleMode]finished");
-  }
+void Commander::setMode(Mode mode) {
+  this->mode = mode;
 }
 
 
@@ -182,7 +219,6 @@ void Commander::onWifiCredentialsDefined(const char* ssid, const char* password,
   this->conf->setNetworkInformations(ssid, password, serverUrl);
 
   if (this->mode == Mode::CONFIGURATION) {
-    // @todo => memleak, this will delete ConfigurationAP then ConfigurationWebServer and caused the return call to failed
-    this->onToggleMode();
+    this->setMode(Mode::NORMAL);
   }
 }

@@ -1,6 +1,6 @@
 #include "ConfigurationWebServer.h"
 
-ConfigurationWebServer::ConfigurationWebServer(IPAddress addr) : server(addr, 80) {
+ConfigurationWebServer::ConfigurationWebServer(IPAddress addr, int port) : server(addr, port) {
   log_printf("[ConfigurationWebServer::ConfigurationWebServer]");
   this->server.on("/", std::bind(&ConfigurationWebServer::onHomePage, this));
   this->server.on("/save", HTTP_POST, std::bind(&ConfigurationWebServer::onConfigurationSent, this));

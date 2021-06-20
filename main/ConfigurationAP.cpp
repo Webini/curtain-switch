@@ -3,17 +3,22 @@
 ConfigurationAP::ConfigurationAP() : localIp(192, 168, 1, 1), gateway(192, 168, 1, 1), subnet(255, 255, 255, 0), server(localIp) {
   memcpy(this->ssid, AP_SSID_PREFIX, strlen(AP_SSID_PREFIX));
   unsigned int chipId = ESP.getChipId();
-  log_printf("Received info %08X", chipId);
   sprintf(this->ssid, "%s%08X", AP_SSID_PREFIX, chipId);
 }
 
 
 ConfigurationAP::~ConfigurationAP() {
   WiFi.softAPdisconnect();
+  WiFi.mode(WIFI_OFF);
 }
 
 
 void ConfigurationAP::begin() {
+  log_printf(
+    "[ConfigurationAP::begin]Setting AP mode... %s", 
+    WiFi.mode(WIFI_AP) ? "success" : "failed"
+  );
+  
   log_printf(
     "[ConfigurationAP::begin]Setting soft-AP configuration... %s", 
     WiFi.softAPConfig(this->localIp, this->gateway, this->subnet) ? "success" : "failed"

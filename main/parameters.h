@@ -1,6 +1,8 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
+#define DEBUG
+
 #define AP_SSID_PREFIX "curtain-switch-"
 #define AP_SSID_PASSWORD "IoT-Curtain"
 
