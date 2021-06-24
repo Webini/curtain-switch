@@ -3,8 +3,9 @@
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-#include <WiFiClient.h>
-#include "ConfigurationWebServer.h"
+#include <functional>
+#include <ESP8266WebServer.h>
+#include "ConfigurationEndpoints.h"
 #include "parameters.h"
 #include "log.h"
 
@@ -14,11 +15,13 @@ class ConfigurationAP {
     ~ConfigurationAP();
     void begin();
     void loop();
-    void onWifiCredentialsDefined(ConfigurationWebServer::WifiCredentialsDefinedCallbackFunction callback);
+    void onNotFound();
+    void onWifiCredentialsDefined(ConfigurationEndpoints::WifiCredentialsDefinedCallbackFunction callback);
     
   private:
     char ssid[34] = {0};
-    ConfigurationWebServer server;
+    ConfigurationEndpoints configurationEndpoints;
+    ESP8266WebServer* server = nullptr;
     IPAddress localIp;
     IPAddress gateway;
     IPAddress subnet;

@@ -30,8 +30,8 @@ void Commander::loop() {
     this->configurationAp->loop();
   }
 
-  if (this->normalAp != nullptr) {
-    this->normalAp->loop();
+  if (this->normalSta != nullptr) {
+    this->normalSta->loop();
   }
 }
 
@@ -41,18 +41,18 @@ void Commander::changeMode() {
     this->configurationAp = nullptr;
   }
 
-  if (this->normalAp) {
-    delete this->normalAp;
-    this->normalAp = nullptr;
+  if (this->normalSta) {
+    delete this->normalSta;
+    this->normalSta = nullptr;
   }
   
   if (this->mode == Mode::NORMAL) {
     log_printf("[Commander::loop]Changing mode to normal");
     this->hardman->setLedMode(HardManager::LedMode::BLINK_FAST); // indicating that we are trying a connection to the AP
-    this->normalAp = new NormalAP(this->hardman);
-    this->normalAp->onWifiConnectionFailed(std::bind(&Commander::onWifiConnectionFailed, this, std::placeholders::_1));
-    this->normalAp->onWifiConnectionSuccess(std::bind(&Commander::onWifiConnectionSuccess, this, std::placeholders::_1));
-    this->normalAp->begin(
+    this->normalSta = new NormalSTA(this->hardman);
+    this->normalSta->onWifiConnectionFailed(std::bind(&Commander::onWifiConnectionFailed, this, std::placeholders::_1));
+    this->normalSta->onWifiConnectionSuccess(std::bind(&Commander::onWifiConnectionSuccess, this, std::placeholders::_1));
+    this->normalSta->begin(
       this->conf->getWifiSsid(),
       this->conf->getWifiPassword(),
       this->conf->getServerUrl()

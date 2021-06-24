@@ -5,7 +5,7 @@
 #include "parameters.h"
 #include "GlobalConfiguration.h"
 #include "HardManager.h"
-#include "NormalAP.h"
+#include "NormalSTA.h"
 #include "ConfigurationAP.h"
 #include "log.h"
 
@@ -44,7 +44,7 @@ class Commander {
     GlobalConfiguration* conf = nullptr;
     HardManager* hardman = nullptr;
     ConfigurationAP* configurationAp = nullptr;
-    NormalAP* normalAp = nullptr;
+    NormalSTA* normalSta = nullptr;
     Mode mode = Mode::NORMAL;
     Mode previousMode = Mode::INITIALIZING;
     bool isConfiguringDuration = false;

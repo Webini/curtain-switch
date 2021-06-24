@@ -1,23 +1,21 @@
-#ifndef CONFIGURATION_WEB_SERVER_H
-#define CONFIGURATION_WEB_SERVER_H
+#ifndef CONFIGURATION_ENDPOINTS_H
+#define CONFIGURATION_ENDPOINTS_H
 
 #include <ESP8266WebServer.h>
 #include <functional>
 #include "log.h"
 
-class ConfigurationWebServer {
+class ConfigurationEndpoints {
   public:
     typedef std::function<void(const char*, const char*, const char*)> WifiCredentialsDefinedCallbackFunction;
-    ConfigurationWebServer(IPAddress addr, int port = 80);
+    ConfigurationEndpoints();
+    void begin(ESP8266WebServer* server);
     void onHomePage();
     void onConfigurationSent();
-    void onNotFound();
-    void begin();
-    void loop();
     void onWifiCredentialsDefined(WifiCredentialsDefinedCallbackFunction callback);
 
   private:
-    ESP8266WebServer server;
+    ESP8266WebServer* server;
     WifiCredentialsDefinedCallbackFunction callback = nullptr;
 };
 
