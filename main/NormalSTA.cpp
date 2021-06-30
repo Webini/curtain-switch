@@ -64,6 +64,10 @@ void NormalSTA::onConnected() {
   this->clean();
   this->server = new ESP8266WebServer(ip, 80);
   this->server->onNotFound(std::bind(&NormalSTA::onNotFound, this));
+  this->server->on("/", std::bind(&NormalSTA::onHomePage, this));
+  this->server->on("/open", std::bind(&NormalSTA::onOpenPage, this));
+  this->server->on("/close", std::bind(&NormalSTA::onClosePage, this));
+  this->server->on("/stop", std::bind(&NormalSTA::onStopPage, this));
   this->httpUpdater = new ESP8266HTTPUpdateServer;
   this->httpUpdater->setup(this->server);
   this->server->begin();
@@ -90,6 +94,33 @@ void NormalSTA::setConfiguration(const char* ssid, const char* password, const c
 void NormalSTA::onNotFound() {
   log_printf("[NormalSTA::onNotFound]");
   this->server->send(404, "text/html", "<h1>Not found :)</h1>");
+}
+
+
+void NormalSTA::onClosePage() {
+  log_printf("[NormalSTA::onClosePage]");
+  this->hardman->setPosition(POSITION_CLOSED);
+  this->server->send(200, "text/html", "<html><body>ok, <a href=\"/\">back</a></body></html>");
+}
+
+
+void NormalSTA::onOpenPage() {
+  log_printf("[NormalSTA::onOpenPage]");
+  this->hardman->setPosition(POSITION_OPENED);
+  this->server->send(200, "text/html", "<html><body>ok, <a href=\"/\">back</a></body></html>");
+}
+
+
+void NormalSTA::onStopPage() {
+  log_printf("[NormalSTA::onStopPage]");
+  this->hardman->stop();
+  this->server->send(200, "text/html", "<html><body>ok, <a href=\"/\">back</a></body></html>");
+}
+
+
+void NormalSTA::onHomePage() {  
+  log_printf("[NormalSTA::onHomePage]");
+  this->server->send(200, "text/html", "<html><body><a href=\"/open\">open</a> <a href=\"/close\">close</a> <a href=\"/stop\">stop</a></body></html>");
 }
 
 

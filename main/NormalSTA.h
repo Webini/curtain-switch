@@ -22,6 +22,10 @@ class NormalSTA {
     void setConfiguration(const char* ssid, const char* password, const char* serverUrl);
     void onWifiConnectionFailed(WifiConnectionStatusCallbackFunction callback);
     void onWifiConnectionSuccess(WifiConnectionStatusCallbackFunction callback);
+    void onClosePage();
+    void onOpenPage();
+    void onStopPage();
+    void onHomePage();
     void onNotFound();
 
   private:

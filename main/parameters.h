@@ -1,13 +1,14 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
-#define VERSION "dev-2"
+#define VERSION "dev-5"
 
-#define DELAY_MIN 50
+#define SLEEP_DELAY 100
 
-#define DEBUG
+// #define DEBUG
 //define MONITOR
 
+#define WORKING_MODE_DURATION 5000ul // ms
 
 #define AP_SSID_PREFIX "curtain-switch-"
 #define AP_SSID_PASSWORD "IoT-Curtain"
@@ -20,7 +21,11 @@
 #define DEFAULT_DOWN_RELAY_PIN 13 // D7
 #define DEFAULT_CLOSE_BTN_PIN 12  // D6
 
+#ifdef DEBUG
+#define DEFAULT_DURATION 3000ul   // in milliseconds
+#else
 #define DEFAULT_DURATION 40000ul   // in milliseconds
+#endif
 
 #define BLINK_INTERVAL 700        // in milliseconds
 #define BLINK_FAST_INTERVAL 350   // in milliseconds
