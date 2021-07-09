@@ -6,15 +6,24 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPUpdateServer.h>
+#include <WiFiUdp.h>
+#include "NTPClient.h"
 #include "ConfigurationEndpoints.h"
 #include "HardManager.h"
+#include "AbstractSensor.h"
 #include "log.h"
+
+#define NTP_SERVER_ADDRESS "europe.pool.ntp.org"
+#define NTP_UPDATE_INTERVAL_MS 1800000
+#define TIME_ZONE_OFFSET 0
+
+#define REFRESH_NTP_TIME_INTERVAL 24 * 60 * 60000 // ms
 
 class NormalSTA {
   public:
     typedef std::function<void(int)> WifiConnectionStatusCallbackFunction;
     
-    NormalSTA(HardManager* hardman);
+    NormalSTA(HardManager* hardman, AbstractSensor* sensor = nullptr);
     ~NormalSTA();
     
     void begin(const char* ssid, const char* password, const char* serverUrl);
@@ -26,6 +35,7 @@ class NormalSTA {
     void onOpenPage();
     void onStopPage();
     void onHomePage();
+    void onPrometheusPage();
     void onNotFound();
 
   private:
@@ -41,6 +51,10 @@ class NormalSTA {
     unsigned long lastConnectingCheck = 0;
     WifiConnectionStatusCallbackFunction wifiErrorCallback = nullptr;
     WifiConnectionStatusCallbackFunction wifiSuccessCallback = nullptr;
+    AbstractSensor* sensor = nullptr;
+    WiFiUDP* ntpUDP = nullptr;
+    NTPClient* timeClient = nullptr;
+    unsigned int lastTimeUpdateAt = 0;
 };
 
 #endif

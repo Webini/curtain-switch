@@ -7,6 +7,7 @@
 #include "HardManager.h"
 #include "NormalSTA.h"
 #include "ConfigurationAP.h"
+#include "AbstractSensor.h"
 #include "log.h"
 
 #define START_DURATION_CONFIGURATION_DURATION 2000
@@ -21,7 +22,7 @@ class Commander {
       CONFIGURATION = 2  
     };
     
-    Commander(GlobalConfiguration* globalConf, HardManager* hardman);
+    Commander(GlobalConfiguration* globalConf, HardManager* hardman, AbstractSensor* sensor = nullptr);
     void begin(float middleCoursePosition = DEFAULT_MIDDLE_COURSE_POSITION);
     void loop();
     void onCloseButton(bool down, unsigned long since, HardManager* hm);
@@ -41,6 +42,7 @@ class Commander {
   
   private:
     void changeMode();
+    AbstractSensor* sensor = nullptr;
     GlobalConfiguration* conf = nullptr;
     HardManager* hardman = nullptr;
     ConfigurationAP* configurationAp = nullptr;

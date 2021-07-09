@@ -1,6 +1,6 @@
 #include "Commander.h"
 
-Commander::Commander(GlobalConfiguration* globalConf, HardManager* _hardman): conf(globalConf), hardman(_hardman) {
+Commander::Commander(GlobalConfiguration* globalConf, HardManager* _hardman, AbstractSensor* _sensor): conf(globalConf), hardman(_hardman), sensor(_sensor) {
   this->hardman->onCloseBtnStateChange(std::bind(&Commander::onCloseButton, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
   this->hardman->onOpenBtnStateChange(std::bind(&Commander::onOpenButton, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
   this->hardman->onStopBtnStateChange(std::bind(&Commander::onStopButton, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
@@ -49,7 +49,7 @@ void Commander::changeMode() {
   if (this->mode == Mode::NORMAL) {
     log_printf("[Commander::loop]Changing mode to normal");
     this->hardman->setLedMode(HardManager::LedMode::BLINK_FAST); // indicating that we are trying a connection to the AP
-    this->normalSta = new NormalSTA(this->hardman);
+    this->normalSta = new NormalSTA(this->hardman, this->sensor);
     this->normalSta->onWifiConnectionFailed(std::bind(&Commander::onWifiConnectionFailed, this, std::placeholders::_1));
     this->normalSta->onWifiConnectionSuccess(std::bind(&Commander::onWifiConnectionSuccess, this, std::placeholders::_1));
     this->normalSta->begin(

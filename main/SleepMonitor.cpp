@@ -26,7 +26,7 @@ void SleepMonitor::endLoop() {
   }
 
   if (!this->lastActivityAt && duration < this->sleepDelay) {
-    log_printf("[SleepMonitor::endLoop]Sleep : %d (loop duration %d)", this->sleepDelay - duration, duration);
+    // log_printf("[SleepMonitor::endLoop]Sleep : %d (loop duration %d)", this->sleepDelay - duration, duration);
     delay(this->sleepDelay - duration);
   }
 }
@@ -39,7 +39,7 @@ void SleepMonitor::startLoop() {
 
 void SleepMonitor::notifyActivity() {
   if (this->lastActivityAt == 0) {
-    log_printf("[SleepMonitor::notifyActivity]Activity detected, entering working mode");
+    log_printf("[SleepMonitor::notifyActivity]Activity detected, entering working mode (work cycle %d)", millis() - this->loopStartedAt);
   }
   
   this->lastActivityAt = millis();

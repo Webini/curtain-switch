@@ -1,6 +1,6 @@
 #include "NormalSTA.h"
 
-NormalSTA::NormalSTA(HardManager* _hardman) : hardman(_hardman) {}
+NormalSTA::NormalSTA(HardManager* _hardman, AbstractSensor* _sensor) : sensor(_sensor), hardman(_hardman) {}
 
 NormalSTA::~NormalSTA() {
   this->clean();
@@ -28,6 +28,12 @@ void NormalSTA::loop() {
       this->wifiErrorCallback(status);
       return;
     }
+  }
+
+  if (this->timeClient && millis() - this->lastTimeUpdateAt > REFRESH_NTP_TIME_INTERVAL) {
+    log_printf("[NormalSTA::loop] NTP update");
+    this->timeClient->update();
+    this->lastTimeUpdateAt = millis();
   }
 
   if (this->server) {
@@ -62,14 +68,20 @@ void NormalSTA::onConnected() {
 
   
   this->clean();
+  this->ntpUDP = new WiFiUDP();
+  this->timeClient = new NTPClient(*this->ntpUDP, NTP_SERVER_ADDRESS, TIME_ZONE_OFFSET, NTP_UPDATE_INTERVAL_MS);
   this->server = new ESP8266WebServer(ip, 80);
   this->server->onNotFound(std::bind(&NormalSTA::onNotFound, this));
   this->server->on("/", std::bind(&NormalSTA::onHomePage, this));
   this->server->on("/open", std::bind(&NormalSTA::onOpenPage, this));
   this->server->on("/close", std::bind(&NormalSTA::onClosePage, this));
   this->server->on("/stop", std::bind(&NormalSTA::onStopPage, this));
+  this->server->on("/prometheus", std::bind(&NormalSTA::onPrometheusPage, this));
   this->httpUpdater = new ESP8266HTTPUpdateServer;
   this->httpUpdater->setup(this->server);
+  this->timeClient->begin();
+  this->timeClient->update();
+  this->lastTimeUpdateAt = millis();
   this->server->begin();
 }
 
@@ -123,6 +135,55 @@ void NormalSTA::onHomePage() {
   this->server->send(200, "text/html", "<html><body><a href=\"/open\">open</a> <a href=\"/close\">close</a> <a href=\"/stop\">stop</a></body></html>");
 }
 
+void NormalSTA::onPrometheusPage() {
+  log_printf("[NormalSTA::onPrometheusPage]");
+
+  if (!this->timeClient) {
+    this->server->send(503, "text/plain", "");
+    return;
+  }
+  
+  char buff[300] = {0};
+  float curtainPosition = 0;
+  unsigned long long time = 0;
+  
+  if (this->timeClient) {
+    time = this->timeClient->getMsEpochTime();
+  }
+
+  if (this->hardman) {
+    curtainPosition = this->hardman->getCurrentPositionValue();
+  }
+
+  if (this->sensor) {
+    double temperature = this->sensor->getTemperature();
+    double pressure = this->sensor->getPressure();
+    double altitude = this->sensor->getAltitude();
+    snprintf(
+      buff, 
+      400, 
+      "iot_temperature %f %llu\n" // temp °C
+      "iot_pressure %f %llu\n" //  press hPa
+      "iot_altitude %f %llu\n" // alt meter
+      "iot_curtain_position %f %llu\n", // curtain position
+      temperature, time,
+      pressure, time,
+      altitude, time,
+      curtainPosition, time
+    );
+    this->server->send(200, "text/plain", buff);
+    return;
+  }
+  
+  snprintf(
+    buff, 
+    400,
+    "iot_curtain_position %f %llu\n", // curtain position
+    curtainPosition, time
+  );
+  this->server->send(200, "text/plain", buff);
+}
+
 
 void NormalSTA::clean() {
   if (this->httpUpdater) {
@@ -134,5 +195,15 @@ void NormalSTA::clean() {
     this->server->stop();
     delete this->server;
     this->server = nullptr;
+  }
+
+  if (this->timeClient) {
+    delete this->timeClient;
+    this->timeClient = nullptr;
+  }
+
+  if (this->ntpUDP) {
+    delete this->ntpUDP;
+    this->ntpUDP = nullptr;
   }
 }

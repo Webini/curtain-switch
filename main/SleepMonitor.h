@@ -10,7 +10,7 @@
 #endif
 
 #ifndef DETECT_ACTIVITY_DELAY_MIN
-#define DETECT_ACTIVITY_DELAY_MIN 1
+#define DETECT_ACTIVITY_DELAY_MIN 5
 #endif
 
 #include <Arduino.h>
