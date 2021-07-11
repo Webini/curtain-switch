@@ -1,16 +1,15 @@
 #include "MS5611Sensor.h"
 
-MS5611Sensor::MS5611Sensor(int _sensorSdaPin, int _sensorSclPin, int _sensorAddr, int _sensorDelay) 
-  : sensorSdaPin(_sensorSdaPin), sensorSclPin(_sensorSclPin), sensorAddr(_sensorAddr), sensorDelay(_sensorDelay), barometer(&wire) {}
+MS5611Sensor::MS5611Sensor(int _sensorSdaPin, int _sensorSclPin, const byte* _sensorAddrs, int _sensorDelay) 
+  : sensorSdaPin(_sensorSdaPin), sensorSclPin(_sensorSclPin), sensorAddrs(_sensorAddrs), sensorDelay(_sensorDelay), barometer(&wire) {}
 
 MS5611Sensor::MS5611Sensor() : barometer(&wire) {}
 
 void MS5611Sensor::begin() {
   log_printf(
-    "[MS5611Sensor::begin] Begin sensor sda pin: %d, scl pin: %d, addr: 0x%02X, delay: %d", 
+    "[MS5611Sensor::begin] Begin sensor sda pin: %d, scl pin: %d, delay: %d", 
     this->sensorSdaPin, 
     this->sensorSclPin,
-    this->sensorAddr,
     this->sensorDelay
   );
   
@@ -20,12 +19,25 @@ void MS5611Sensor::begin() {
     this->wire.begin();
   }
   
-  this->barometer.setI2Caddr(this->sensorAddr); 
-  this->barometer.setSamples(MS5xxx_CMD_ADC_256);
   this->barometer.setDelay(this->sensorDelay);
 
-  log_printf("[MS5611Sensor::begin] Connect result %d", this->barometer.connect());
+  for (byte offset = 0; offset[this->sensorAddrs] != 0; offset++) { 
+    this->barometer.setI2Caddr(this->sensorAddrs[offset]); 
+    auto result = this->barometer.connect();
+    log_printf("[MS5611Sensor::begin] Connect to 0x%02X result %d", this->sensorAddrs[offset], result);
+    if (result == 0) {
+      this->detected = true;
+      this->foundAddr = this->sensorAddrs[offset];
+      break;
+    }
+  }
 }
+
+
+byte MS5611Sensor::getAddress() {
+  return this->foundAddr;
+}
+
 
 void MS5611Sensor::loop() {
   unsigned long now = millis();
@@ -33,6 +45,10 @@ void MS5611Sensor::loop() {
     this->barometer.checkUpdates();
     this->lastUpdatedAt = now;
   }
+}
+
+bool MS5611Sensor::isDetected() {
+  return this->detected;
 }
 
 double MS5611Sensor::getTemperature() {

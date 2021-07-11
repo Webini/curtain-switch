@@ -17,9 +17,9 @@
 #define WIFI_SSID_LENGTH 34
 #define WIFI_PASSWORD_ADDRESS WIFI_SSID_ADDRESS + WIFI_SSID_LENGTH
 #define WIFI_PASSWORD_LENGTH 64
-#define SERVER_URL_ADDRESS WIFI_PASSWORD_ADDRESS + WIFI_PASSWORD_LENGTH 
-#define SERVER_URL_LENGTH 150
-#define MIDDLE_COURSE_POSITION_ADDRESS SERVER_URL_ADDRESS + SERVER_URL_LENGTH
+#define NAME_ADDRESS WIFI_PASSWORD_ADDRESS + WIFI_PASSWORD_LENGTH 
+#define NAME_LENGTH 80
+#define MIDDLE_COURSE_POSITION_ADDRESS NAME_ADDRESS + NAME_LENGTH
 #define MIDDLE_COURSE_POSITION_LENGTH sizeof(float)
 
 #define EEPROM_BUFFER_SIZE MIDDLE_COURSE_POSITION_ADDRESS + MIDDLE_COURSE_POSITION_LENGTH + 1
@@ -30,12 +30,12 @@ class GlobalConfiguration {
     void begin();
     const char* getWifiSsid();
     const char* getWifiPassword();
-    const char* getServerUrl();
+    const char* getName();
     bool isConfigured();
     unsigned long getDuration();
     float getMiddleCoursePosition();
     void setDurationAndMiddleCoursePosition(unsigned long duration, float middleCoursePosition);
-    void setNetworkInformations(const char* ssid, const char* password, const char* serverUrl); 
+    void setNetworkInformations(const char* ssid, const char* password, const char* name); 
 
   private:
     bool configured = false;
@@ -43,7 +43,7 @@ class GlobalConfiguration {
     float middleCoursePosition = DEFAULT_MIDDLE_COURSE_POSITION;
     const char* wifiSsid = "";
     const char* wifiPassword = "";
-    const char* serverUrl = "";
+    const char* name = "";
     void writeBuffer(const int address, const uint8_t* str, size_t strLen, size_t maxLen);
 };
 

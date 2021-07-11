@@ -3,7 +3,7 @@
 ConfigurationAP::ConfigurationAP() : localIp(192, 168, 1, 1), gateway(192, 168, 1, 1), subnet(255, 255, 255, 0) {
   memcpy(this->ssid, AP_SSID_PREFIX, strlen(AP_SSID_PREFIX));
   unsigned int chipId = ESP.getChipId();
-  sprintf(this->ssid, "%s%08X", AP_SSID_PREFIX, chipId);
+  snprintf(this->ssid, 33, "%s%08X", AP_SSID_PREFIX, chipId);
 }
 
 
@@ -13,7 +13,8 @@ ConfigurationAP::~ConfigurationAP() {
     delete this->server;
   }
 
-  log_printf("[ConfigurationAP::~ConfigurationAP]SoftAPDisconnect : %d", WiFi.softAPdisconnect(true));
+  auto result = WiFi.softAPdisconnect(true);
+  log_printf("[ConfigurationAP::~ConfigurationAP]SoftAPDisconnect : %d", result);
 }
 
 
@@ -22,16 +23,18 @@ void ConfigurationAP::begin() {
     "[ConfigurationAP::begin]Enable AP mode... %s", 
     WiFi.enableAP(true) ? "success" : "failed"
   );
-  
+
+  auto result = WiFi.softAPConfig(this->localIp, this->gateway, this->subnet);
   log_printf(
     "[ConfigurationAP::begin]Setting soft-AP configuration... %s", 
-    WiFi.softAPConfig(this->localIp, this->gateway, this->subnet) ? "success" : "failed"
+    result ? "success" : "failed"
   );
 
+  result = WiFi.softAP(this->ssid, AP_SSID_PASSWORD);
   log_printf(
     "[ConfigurationAP::begin]Setting soft-AP with ssid %s... %s",
     this->ssid,
-    WiFi.softAP(this->ssid, AP_SSID_PASSWORD) ? "success" : "failed"
+    result ? "success" : "failed"
   );
   
   if (this->server) {
@@ -60,6 +63,6 @@ void ConfigurationAP::loop() {
 }
 
 
-void ConfigurationAP::onWifiCredentialsDefined(ConfigurationEndpoints::WifiCredentialsDefinedCallbackFunction callback) {
-  this->configurationEndpoints.onWifiCredentialsDefined(callback);
+void ConfigurationAP::onConfigurationDefined(ConfigurationEndpoints::ConfigurationDefinedCallbackFunction callback) {
+  this->configurationEndpoints.onConfigurationDefined(callback);
 }

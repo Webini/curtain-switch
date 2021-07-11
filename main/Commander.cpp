@@ -1,6 +1,7 @@
 #include "Commander.h"
 
-Commander::Commander(GlobalConfiguration* globalConf, HardManager* _hardman, AbstractSensor* _sensor): conf(globalConf), hardman(_hardman), sensor(_sensor) {
+Commander::Commander(GlobalConfiguration* globalConf, HardManager* _hardman, SleepMonitor *_sleepMonitor, AbstractSensor* _sensor)
+  : conf(globalConf), hardman(_hardman), sleepMonitor(_sleepMonitor), sensor(_sensor) {
   this->hardman->onCloseBtnStateChange(std::bind(&Commander::onCloseButton, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
   this->hardman->onOpenBtnStateChange(std::bind(&Commander::onOpenButton, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
   this->hardman->onStopBtnStateChange(std::bind(&Commander::onStopButton, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
@@ -36,6 +37,7 @@ void Commander::loop() {
 }
 
 void Commander::changeMode() {
+  this->sleepMonitor->notifyActivity();
   if (this->configurationAp) {
     delete this->configurationAp;
     this->configurationAp = nullptr;
@@ -49,20 +51,21 @@ void Commander::changeMode() {
   if (this->mode == Mode::NORMAL) {
     log_printf("[Commander::loop]Changing mode to normal");
     this->hardman->setLedMode(HardManager::LedMode::BLINK_FAST); // indicating that we are trying a connection to the AP
-    this->normalSta = new NormalSTA(this->hardman, this->sensor);
+    this->normalSta = new NormalSTA(this->hardman, this->sleepMonitor, this->sensor);
     this->normalSta->onWifiConnectionFailed(std::bind(&Commander::onWifiConnectionFailed, this, std::placeholders::_1));
     this->normalSta->onWifiConnectionSuccess(std::bind(&Commander::onWifiConnectionSuccess, this, std::placeholders::_1));
+    this->normalSta->onConfigurationDefined(std::bind(&Commander::onConfigurationDefined, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     this->normalSta->begin(
       this->conf->getWifiSsid(),
       this->conf->getWifiPassword(),
-      this->conf->getServerUrl()
+      this->conf->getName()
     );
   } 
   
   if (this->mode == Mode::CONFIGURATION) {
     log_printf("[Commander::Loop]Changing mode to configuration");
     this->configurationAp = new ConfigurationAP();
-    this->configurationAp->onWifiCredentialsDefined(std::bind(&Commander::onWifiCredentialsDefined, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    this->configurationAp->onConfigurationDefined(std::bind(&Commander::onConfigurationDefined, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     this->configurationAp->begin();
     this->hardman->setLedMode(HardManager::LedMode::BLINK_SLOW);
   }
@@ -92,6 +95,7 @@ void Commander::onCloseButton(bool down, unsigned long since, HardManager* hm) {
     return;
   }
   
+  this->sleepMonitor->notifyActivity();
   this->hardman->setPosition(POSITION_CLOSED);
 }
 
@@ -102,6 +106,7 @@ void Commander::onStopButton(bool down, unsigned long since, HardManager* hm) {
     return;
   }
   
+  this->sleepMonitor->notifyActivity();
   if (this->isConfiguringDuration) {      
     // can't stop if we are in duration conf mode, we only accept when we stop down relay (used to define curtain duration)/
     // we also leave if button is down (to avoid setting middleCourseTime to now then when released finished the duration calibration)
@@ -158,7 +163,8 @@ void Commander::onOpenButton(bool down, unsigned long since, HardManager* hm) {
   if (this->isConfiguringDuration || this->hardman->isInitializing()) {
     return;
   }
-
+  
+  this->sleepMonitor->notifyActivity();
   unsigned long pressDuration = millis() - since;
   if (!down && pressDuration > START_DURATION_CONFIGURATION_DURATION) {
     this->onStartDurationConfiguration();
@@ -215,10 +221,16 @@ void Commander::onDownRelay(bool on, unsigned long since, HardManager* hm) {
 }
 
 
-void Commander::onWifiCredentialsDefined(const char* ssid, const char* password, const char* serverUrl) {
+void Commander::onConfigurationDefined(const char* ssid, const char* password, const char* serverUrl) {
   this->conf->setNetworkInformations(ssid, password, serverUrl);
 
   if (this->mode == Mode::CONFIGURATION) {
     this->setMode(Mode::NORMAL);
+  } else {
+    this->normalSta->begin(
+      this->conf->getWifiSsid(),
+      this->conf->getWifiPassword(),
+      this->conf->getName()
+    );
   }
 }

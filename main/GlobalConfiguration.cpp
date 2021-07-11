@@ -23,16 +23,16 @@ void GlobalConfiguration::begin() {
   this->configured = EEPROM.get<bool>(CONFIGURED_ADDRESS, this->configured);
   this->wifiSsid = (const char*)&EEPROM[WIFI_SSID_ADDRESS];
   this->wifiPassword = (const char*)&EEPROM[WIFI_PASSWORD_ADDRESS];
-  this->serverUrl = (const char*)&EEPROM[SERVER_URL_ADDRESS];
+  this->name = (const char*)&EEPROM[NAME_ADDRESS];
   this->duration = EEPROM.get<unsigned long>(DURATION_ADDRESS, this->duration);
   this->middleCoursePosition = EEPROM.get<float>(MIDDLE_COURSE_POSITION_ADDRESS, this->middleCoursePosition);
 
   log_printf(
-    "[GlobalConfiguration::begin]configured: %d\nssid: %s\npassword: %s\nserverUrl: %s\ncurtain duration: %u\nmiddle course position: %0.05f",
+    "[GlobalConfiguration::begin]configured: %d\nssid: %s\npassword: %s\name: %s\ncurtain duration: %u\nmiddle course position: %0.05f",
     this->configured,
     this->wifiSsid,
     this->wifiPassword,
-    this->serverUrl,
+    this->name,
     this->duration,
     this->middleCoursePosition
   );
@@ -58,8 +58,8 @@ const char* GlobalConfiguration::getWifiPassword() {
   return this->wifiPassword;
 }
 
-const char* GlobalConfiguration::getServerUrl() {
-  return this->serverUrl;
+const char* GlobalConfiguration::getName() {
+  return this->name;
 }
 
 bool GlobalConfiguration::isConfigured() {
@@ -90,8 +90,8 @@ void GlobalConfiguration::setDurationAndMiddleCoursePosition(unsigned long durat
   );
 }
 
-void GlobalConfiguration::setNetworkInformations(const char* ssid, const char* password, const char* serverUrl) {
-  this->writeBuffer(SERVER_URL_ADDRESS, (const uint8_t*)serverUrl, strlen(serverUrl), SERVER_URL_LENGTH);
+void GlobalConfiguration::setNetworkInformations(const char* ssid, const char* password, const char* name) {
+  this->writeBuffer(NAME_ADDRESS, (const uint8_t*)name, strlen(name), NAME_LENGTH);
   this->writeBuffer(WIFI_SSID_ADDRESS, (const uint8_t*)ssid, strlen(ssid), WIFI_SSID_LENGTH);
   this->writeBuffer(WIFI_PASSWORD_ADDRESS, (const uint8_t*)password, strlen(password), WIFI_PASSWORD_LENGTH);
    
@@ -100,10 +100,10 @@ void GlobalConfiguration::setNetworkInformations(const char* ssid, const char* p
   EEPROM.commit();
   
   log_printf(
-    "[GlobalConfiguration::setNetworkInformations]ssid: %s, password: %s, serverUrl: %s, isConfigured: %d",
+    "[GlobalConfiguration::setNetworkInformations]ssid: %s, password: %s, name: %s, isConfigured: %d",
     this->wifiSsid,
     this->wifiPassword,
-    this->serverUrl,
+    this->name,
     this->configured
   );
 }

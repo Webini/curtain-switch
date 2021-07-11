@@ -104,7 +104,7 @@ class HardManager {
     
   private:
     bool initializing = false;
-    void updateCurrentPosition();
+    void updateCurrentPosition(unsigned long at = 0);
     void blinkLed();
     byte ledPin;
     byte upRelayPin;

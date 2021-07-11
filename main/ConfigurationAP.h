@@ -16,7 +16,7 @@ class ConfigurationAP {
     void begin();
     void loop();
     void onNotFound();
-    void onWifiCredentialsDefined(ConfigurationEndpoints::WifiCredentialsDefinedCallbackFunction callback);
+    void onConfigurationDefined(ConfigurationEndpoints::ConfigurationDefinedCallbackFunction callback);
     
   private:
     char ssid[34] = {0};

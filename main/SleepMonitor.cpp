@@ -54,3 +54,7 @@ bool SleepMonitor::isInSleepMode() {
 unsigned long SleepMonitor::getElapsedTime() {
   return millis() - this->loopStartedAt;
 }
+
+unsigned long SleepMonitor::getElapsedTimeSinceLastActivity() {
+  return millis() - this->lastActivityAt;
+}

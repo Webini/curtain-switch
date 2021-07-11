@@ -10,7 +10,7 @@
 #endif
 
 #ifndef DETECT_ACTIVITY_DELAY_MIN
-#define DETECT_ACTIVITY_DELAY_MIN 5
+#define DETECT_ACTIVITY_DELAY_MIN 15
 #endif
 
 #include <Arduino.h>
@@ -25,6 +25,7 @@ class SleepMonitor {
     void notifyActivity();
     bool isInSleepMode();
     unsigned long getElapsedTime();
+    unsigned long getElapsedTimeSinceLastActivity();
 
   private:
     unsigned long detectActivityAfter = 0;

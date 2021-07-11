@@ -8,6 +8,7 @@
 #include "NormalSTA.h"
 #include "ConfigurationAP.h"
 #include "AbstractSensor.h"
+#include "SleepMonitor.h"
 #include "log.h"
 
 #define START_DURATION_CONFIGURATION_DURATION 2000
@@ -22,7 +23,7 @@ class Commander {
       CONFIGURATION = 2  
     };
     
-    Commander(GlobalConfiguration* globalConf, HardManager* hardman, AbstractSensor* sensor = nullptr);
+    Commander(GlobalConfiguration* globalConf, HardManager* hardman, SleepMonitor* sleepMonitor, AbstractSensor* sensor);
     void begin(float middleCoursePosition = DEFAULT_MIDDLE_COURSE_POSITION);
     void loop();
     void onCloseButton(bool down, unsigned long since, HardManager* hm);
@@ -31,7 +32,7 @@ class Commander {
     void onPositionChanged(float position, HardManager* hm);
     void onUpRelay(bool on, unsigned long since, HardManager* hm);
     void onDownRelay(bool on, unsigned long since, HardManager* hm);
-    void onWifiCredentialsDefined(const char* ssid, const char* password, const char* serverUrl);
+    void onConfigurationDefined(const char* ssid, const char* password, const char* name);
     void onWifiConnectionSuccess(int status);
     void onWifiConnectionFailed(int status);
     Mode getMode();
@@ -42,6 +43,7 @@ class Commander {
   
   private:
     void changeMode();
+    SleepMonitor* sleepMonitor = nullptr;
     AbstractSensor* sensor = nullptr;
     GlobalConfiguration* conf = nullptr;
     HardManager* hardman = nullptr;

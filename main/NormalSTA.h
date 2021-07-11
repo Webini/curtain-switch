@@ -10,6 +10,7 @@
 #include "NTPClient.h"
 #include "ConfigurationEndpoints.h"
 #include "HardManager.h"
+#include "SleepMonitor.h"
 #include "AbstractSensor.h"
 #include "log.h"
 
@@ -23,31 +24,35 @@ class NormalSTA {
   public:
     typedef std::function<void(int)> WifiConnectionStatusCallbackFunction;
     
-    NormalSTA(HardManager* hardman, AbstractSensor* sensor = nullptr);
+    NormalSTA(HardManager* hardman, SleepMonitor* sleepMonitor, AbstractSensor* sensor);
     ~NormalSTA();
     
-    void begin(const char* ssid, const char* password, const char* serverUrl);
+    void begin(const char* ssid, const char* password, const char* name);
     void loop();
     void setConfiguration(const char* ssid, const char* password, const char* serverUrl);
     void onWifiConnectionFailed(WifiConnectionStatusCallbackFunction callback);
     void onWifiConnectionSuccess(WifiConnectionStatusCallbackFunction callback);
+    void onConfigurationDefined(ConfigurationEndpoints::ConfigurationDefinedCallbackFunction callback);
     void onClosePage();
     void onOpenPage();
     void onStopPage();
     void onHomePage();
+    void onInfoPage();
+    void onRebootPage();
     void onPrometheusPage();
     void onNotFound();
 
   private:
     void clean();
     void onConnected();
+    SleepMonitor* sleepMonitor = nullptr;
     ConfigurationEndpoints configurationEndpoints;
     ESP8266WebServer* server = nullptr;
     ESP8266HTTPUpdateServer* httpUpdater = nullptr;
     HardManager* hardman = nullptr;
     const char* ssid = "";
     const char* password = "";
-    const char* serverUrl = "";
+    const char* name = "curtain switch";
     unsigned long lastConnectingCheck = 0;
     WifiConnectionStatusCallbackFunction wifiErrorCallback = nullptr;
     WifiConnectionStatusCallbackFunction wifiSuccessCallback = nullptr;

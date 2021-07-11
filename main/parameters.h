@@ -1,23 +1,18 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
-#define VERSION "dev-6"
+#define VERSION "0.0.4"
 
 #define SLEEP_DELAY 100
 
-#define DEBUG
-// #define MONITOR
+// #define DEBUG
 
 #define WORKING_MODE_DURATION 5000ul // ms
 
-#define SENSOR 
-
-#ifdef SENSOR
-  #define SENSOR_SCL_PIN 2
-  #define SENSOR_SDA_PIN 4
-  #define SENSOR_I2C_ADDR 0x77 // for MS5611
-  #define SENSOR_DELAY 1000 // ms
-#endif
+#define SENSOR_SCL_PIN 2
+#define SENSOR_SDA_PIN 4
+#define SENSOR_I2C_ADDRS (const byte*)"\x76\x77"
+#define SENSOR_DELAY 1000 // ms
 
 #define AP_SSID_PREFIX "curtain-switch-"
 #define AP_SSID_PASSWORD "IoT-Curtain"

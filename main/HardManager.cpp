@@ -75,8 +75,8 @@ void HardManager::loop() {
 }
 
 
-void HardManager::updateCurrentPosition() {
-  unsigned long now = millis();
+void HardManager::updateCurrentPosition(unsigned long at) {
+  unsigned long now = at ? at : millis();
   unsigned long elapsedTime = 0;
   float direction = DIRECTION_OPEN;
   
@@ -131,7 +131,7 @@ HardManager::ReturnCode HardManager::setPosition(float position) {
   float diff = ABS(this->currentPosition - position);
   unsigned long time = (unsigned long)(diff * this->duration);
 
-  if (time == 0) {
+  if (time == 0 || time < SLEEP_DELAY) {
     return ReturnCode::NOTHING_TODO;
   }
 
@@ -162,14 +162,14 @@ bool HardManager::setUpRelayState(bool on) {
     return false;
   }
   
-  if (!on) {
-    this->updateCurrentPosition();
-    this->stopUpRelayAfter = 0;
-  }
-  
   unsigned long oldSince = this->upRelayOnSince;
   this->upRelayOnSince = on ? millis() : 0;
   digitalWrite(this->upRelayPin, on ? HIGH : LOW);
+  
+  if (!on) {
+    this->updateCurrentPosition(this->upRelayOnSince);
+    this->stopUpRelayAfter = 0;
+  }
   
   if (this->upRelayStateChangeCallback) {
     this->upRelayStateChangeCallback(on, on ? this->upRelayOnSince : oldSince, this);
@@ -184,14 +184,14 @@ bool HardManager::setDownRelayState(bool on) {
     return false;
   }
   
-  if (!on) {
-    this->updateCurrentPosition();
-    this->stopDownRelayAfter = 0;
-  }
-  
   unsigned long oldSince = this->downRelayOnSince;
   this->downRelayOnSince = on ? millis() : 0;
   digitalWrite(this->downRelayPin, on ? HIGH : LOW);
+  
+  if (!on) {
+    this->updateCurrentPosition(this->downRelayOnSince);
+    this->stopDownRelayAfter = 0;
+  }
   
   if (this->downRelayStateChangeCallback) {
     this->downRelayStateChangeCallback(on, on ? this->downRelayOnSince : oldSince, this);

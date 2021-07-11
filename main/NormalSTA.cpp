@@ -1,10 +1,11 @@
 #include "NormalSTA.h"
 
-NormalSTA::NormalSTA(HardManager* _hardman, AbstractSensor* _sensor) : sensor(_sensor), hardman(_hardman) {}
+NormalSTA::NormalSTA(HardManager* _hardman, SleepMonitor* _sleepMonitor, AbstractSensor* _sensor) : sensor(_sensor), sleepMonitor(_sleepMonitor), hardman(_hardman) {}
 
 NormalSTA::~NormalSTA() {
   this->clean();
-  log_printf("[ConfigurationAP::~ConfigurationAP]Disconnect : %d", WiFi.disconnect(true));
+  auto result = WiFi.disconnect(true);
+  log_printf("[ConfigurationAP::~ConfigurationAP]Disconnect : %d", result);
 }
 
 void NormalSTA::loop() {
@@ -41,14 +42,25 @@ void NormalSTA::loop() {
   }
 }
 
+void NormalSTA::begin(const char* ssid, const char* password, const char* name) {
+  log_printf("[ConfigurationAP::begin]ssid: %s, password: %s", ssid, password);
+  this->setConfiguration(ssid, password, name);
 
-void NormalSTA::begin(const char* ssid, const char* password, const char* serverUrl) {
-  log_printf("[ConfigurationAP::begin]Ssid: %s, password: %s, serverUrl: %s", ssid, password, serverUrl);
-  this->setConfiguration(ssid, password, serverUrl);
-
+  if (name && strlen(name) > 0) {
+    WiFi.hostname(name);
+    log_printf("[ConfigurationAP::begin]Set hostname: %s", name);
+  } else {
+    char hostname[34] = {0};
+    unsigned int chipId = ESP.getChipId();
+    snprintf(hostname, 33, "%s%08X", AP_SSID_PREFIX, chipId);
+    WiFi.hostname(hostname);
+    log_printf("[ConfigurationAP::begin]Set hostname: %s", hostname);
+  }
+  
+  auto result = WiFi.enableSTA(true);
   log_printf(
     "[NormalSTA::begin]WiFi Enable STA... %s", 
-    WiFi.enableSTA(true) ? "success" : "failed"
+    result ? "success" : "failed"
   );
   
   log_printf("[NormalSTA::begin]Starting connection...");
@@ -76,7 +88,10 @@ void NormalSTA::onConnected() {
   this->server->on("/open", std::bind(&NormalSTA::onOpenPage, this));
   this->server->on("/close", std::bind(&NormalSTA::onClosePage, this));
   this->server->on("/stop", std::bind(&NormalSTA::onStopPage, this));
+  this->server->on("/reboot", std::bind(&NormalSTA::onRebootPage, this));
   this->server->on("/prometheus", std::bind(&NormalSTA::onPrometheusPage, this));
+  this->server->on("/info", std::bind(&NormalSTA::onInfoPage, this));
+  this->configurationEndpoints.begin(this->server, "/configuration");
   this->httpUpdater = new ESP8266HTTPUpdateServer;
   this->httpUpdater->setup(this->server);
   this->timeClient->begin();
@@ -96,16 +111,22 @@ void NormalSTA::onWifiConnectionSuccess(WifiConnectionStatusCallbackFunction cal
 }
 
 
-void NormalSTA::setConfiguration(const char* ssid, const char* password, const char* serverUrl) {
+void NormalSTA::setConfiguration(const char* ssid, const char* password, const char* name) {
   this->ssid = ssid;
   this->password = password;
-  this->serverUrl = serverUrl;
+  this->name = name;
 }
 
 
 void NormalSTA::onNotFound() {
   log_printf("[NormalSTA::onNotFound]");
   this->server->send(404, "text/html", "<h1>Not found :)</h1>");
+}
+
+
+void NormalSTA::onRebootPage() {
+  this->server->send(200, "text/html", "<html><body>ok, <a href=\"/\">back</a></body></html>");
+  ESP.restart();
 }
 
 
@@ -132,8 +153,9 @@ void NormalSTA::onStopPage() {
 
 void NormalSTA::onHomePage() {  
   log_printf("[NormalSTA::onHomePage]");
-  this->server->send(200, "text/html", "<html><body><a href=\"/open\">open</a> <a href=\"/close\">close</a> <a href=\"/stop\">stop</a></body></html>");
+  this->server->send(200, "text/html", "<html><body><a href=\"/open\">open</a> <a href=\"/close\">close</a> <a href=\"/stop\">stop</a> <a href=\"/configuration\">config</a></body></html>");
 }
+
 
 void NormalSTA::onPrometheusPage() {
   log_printf("[NormalSTA::onPrometheusPage]");
@@ -143,9 +165,11 @@ void NormalSTA::onPrometheusPage() {
     return;
   }
   
-  char buff[300] = {0};
+  char buff[1000] = {0};
   float curtainPosition = 0;
   unsigned long long time = 0;
+  int freeHeap = ESP.getFreeHeap();
+  int headFragmentation = ESP.getHeapFragmentation();
   
   if (this->timeClient) {
     time = this->timeClient->getMsEpochTime();
@@ -155,21 +179,32 @@ void NormalSTA::onPrometheusPage() {
     curtainPosition = this->hardman->getCurrentPositionValue();
   }
 
-  if (this->sensor) {
+  if (!time) {
+    this->server->send(503, "text/plain", "");
+    return;
+  }
+
+  if (this->sensor->isDetected()) {
     double temperature = this->sensor->getTemperature();
     double pressure = this->sensor->getPressure();
     double altitude = this->sensor->getAltitude();
     snprintf(
       buff, 
-      400, 
-      "iot_temperature %f %llu\n" // temp °C
-      "iot_pressure %f %llu\n" //  press hPa
-      "iot_altitude %f %llu\n" // alt meter
-      "iot_curtain_position %f %llu\n", // curtain position
-      temperature, time,
-      pressure, time,
-      altitude, time,
-      curtainPosition, time
+      1000, 
+      "iot_temperature{name=\"%s\"} %f %llu\n" // temp °C
+      "iot_pressure{name=\"%s\"} %f %llu\n" //  press hPa
+      "iot_altitude{name=\"%s\"} %f %llu\n" // alt meter
+      "iot_curtain_position{name=\"%s\"} %f %llu\n" // curtain position
+      "iot_free_heap{name=\"%s\"} %i %llu\n"
+      "iot_heap_fragmentation{name=\"%s\"} %i %llu\n"
+      "iot_sleep_since{name=\"%s\"} %u %llu\n",
+      this->name, temperature, time,
+      this->name, pressure, time,
+      this->name, altitude, time,
+      this->name, curtainPosition, time,
+      this->name, freeHeap, time,
+      this->name, headFragmentation, time,
+      this->name, this->sleepMonitor->getElapsedTimeSinceLastActivity(), time
     );
     this->server->send(200, "text/plain", buff);
     return;
@@ -177,10 +212,46 @@ void NormalSTA::onPrometheusPage() {
   
   snprintf(
     buff, 
-    400,
-    "iot_curtain_position %f %llu\n", // curtain position
-    curtainPosition, time
+    1000,
+    "iot_curtain_position{name=\"%s\"} %f %llu\n" // curtain position
+    "iot_free_heap{name=\"%s\"} %i %llu\n"
+    "iot_heap_fragmentation{name=\"%s\"} %i %llu\n"
+    "iot_sleep_since{name=\"%s\"} %u %llu\n",
+    this->name, curtainPosition, time,
+    this->name, freeHeap, time,
+    this->name, headFragmentation, time,
+    this->name, this->sleepMonitor->getElapsedTimeSinceLastActivity(), time
   );
+  this->server->send(200, "text/plain", buff);
+}
+
+
+void NormalSTA::onInfoPage() {
+  char buff[400] = {0};
+  
+  snprintf(
+    buff, 
+    400,
+    "version : %s\n"
+    "sensor detected : %s\n"
+    "elapsed time since last activity: %u\n"
+    "ip : %s\n"
+    "sensor addr : 0x%02X\n"
+    "debug : %s\n"
+    "name : %s\n",
+    VERSION,
+    this->sensor->isDetected() ? "yes" : "no",
+    this->sleepMonitor->getElapsedTimeSinceLastActivity(),
+    WiFi.localIP().toString().c_str(),
+    this->sensor->getAddress(),
+    #ifdef DEBUG
+    "yes",
+    #else
+    "no",
+    #endif
+    this->name
+  );
+  
   this->server->send(200, "text/plain", buff);
 }
 
@@ -206,4 +277,9 @@ void NormalSTA::clean() {
     delete this->ntpUDP;
     this->ntpUDP = nullptr;
   }
+}
+
+
+void NormalSTA::onConfigurationDefined(ConfigurationEndpoints::ConfigurationDefinedCallbackFunction callback) {
+  this->configurationEndpoints.onConfigurationDefined(callback);
 }

@@ -7,16 +7,16 @@
 
 class ConfigurationEndpoints {
   public:
-    typedef std::function<void(const char*, const char*, const char*)> WifiCredentialsDefinedCallbackFunction;
+    typedef std::function<void(const char*, const char*, const char*)> ConfigurationDefinedCallbackFunction;
     ConfigurationEndpoints();
-    void begin(ESP8266WebServer* server);
+    void begin(ESP8266WebServer* server, const char* path = "/");
     void onHomePage();
     void onConfigurationSent();
-    void onWifiCredentialsDefined(WifiCredentialsDefinedCallbackFunction callback);
+    void onConfigurationDefined(ConfigurationDefinedCallbackFunction callback);
 
   private:
     ESP8266WebServer* server;
-    WifiCredentialsDefinedCallbackFunction callback = nullptr;
+    ConfigurationDefinedCallbackFunction callback = nullptr;
 };
 
 #endif
