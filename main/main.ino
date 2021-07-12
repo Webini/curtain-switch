@@ -19,10 +19,10 @@ void setup() {
   Serial.println(VERSION);
 
   sleepMonitor.begin();
+  sensor.begin();
   conf.begin();
   hardman.begin(conf.getDuration());  
   com.begin(conf.getMiddleCoursePosition());
-  sensor.begin();
 }
 
 void loop() {

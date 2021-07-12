@@ -33,6 +33,7 @@ class SleepMonitor {
     unsigned long sleepDelay = 0;
     unsigned long loopStartedAt = 0;
     unsigned long lastActivityAt = 0;
+    unsigned long startSleepingAt = 0;
 };
 
 #endif

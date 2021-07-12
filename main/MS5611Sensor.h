@@ -32,6 +32,7 @@ class MS5611Sensor : public AbstractSensor {
     bool detected = false;
     int sensorDelay = DEFAULT_SENSOR_DELAY;
     unsigned long lastUpdatedAt = 0;
+    unsigned long failureDetectedAt = 0;
     TwoWire wire;
     MS5x barometer;
 };

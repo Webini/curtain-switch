@@ -1,7 +1,7 @@
 #ifndef PARAMETERS_H
 #define PARAMETERS_H
 
-#define VERSION "0.0.4"
+#define VERSION "0.0.6"
 
 #define SLEEP_DELAY 100
 
